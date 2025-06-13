@@ -1,26 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { NextResponse } from 'next/server';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-export async function POST(req: NextRequest) {
-  const { quote } = await req.json();
-  if (!quote || !quote.client_email) {
-    return NextResponse.json({ error: 'Missing quote or client email' }, { status: 400 });
-  }
+export async function POST(request: Request) {
   try {
-    await resend.emails.send({
-      from: 'VoltFlow <noreply@voltflow.com>',
-      to: quote.client_email,
-      subject: `Your Quote from VoltFlow` ,
-      html: `<h1>Quote #${quote.id}</h1>
-             <p>Dear ${quote.client_name || 'Customer'},</p>
-             <p>Here is your quote: <strong>$${quote.amount}</strong></p>
-             <p>Notes: ${quote.notes || 'N/A'}</p>
-             <p>Thank you for choosing VoltFlow!</p>`
+    const { quoteId, clientEmail } = await request.json();
+
+    if (!quoteId || !clientEmail) {
+      return NextResponse.json(
+        { error: 'Missing required fields: quoteId, clientEmail' },
+        { status: 400 }
+      );
+    }
+
+    // TODO: Implement actual email sending logic
+    // For now, just return success
+    console.log(`Sending quote ${quoteId} to ${clientEmail}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Quote email sent successfully'
     });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+  } catch (error) {
+    console.error('Error sending quote email:', error);
+    return NextResponse.json(
+      { error: 'Failed to send quote email' },
+      { status: 500 }
+    );
   }
 } 

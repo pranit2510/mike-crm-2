@@ -2,7 +2,17 @@
 
 import { useState } from 'react'
 import { leadOperations } from '@/lib/supabase-client'
-import type { Lead } from '@/lib/supabase'
+
+interface FormData {
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  source: string;
+  notes: string;
+  status: string;
+  estimated_value: number;
+}
 
 export default function AddLeadForm({ onSuccess }: { onSuccess?: () => void }) {
   const [loading, setLoading] = useState(false)

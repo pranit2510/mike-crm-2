@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -16,39 +18,42 @@ import {
 import { channelReportOperations, type ChannelReport } from '@/lib/supabase-client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
+interface ChannelData extends ChannelReport {
+  id: number;
+  channel_name: string;
+  cost: number;
+  leads: number;
+  jobs: number;
+  revenue: number;
+  month: string;
+}
+
 const MarketingChannelsSection = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   
-  const [channelData, setChannelData] = useState<ChannelReport[]>([]);
-  const [editingRow, setEditingRow] = useState<number | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<ChannelReport>>({});
-  const [isAddingChannel, setIsAddingChannel] = useState(false);
-  const [newChannelData, setNewChannelData] = useState<Omit<ChannelReport, 'id' | 'created_at'>>({
-    month: selectedMonth,
-    channel: '',
-    cost: 0,
-    leads: 0,
-    jobs: 0,
-    revenue: 0,
-    close_rate: 0,
-    cost_per_lead: 0,
-    roi: 0,
-  });
+  const [channelData, setChannelData] = useState<ChannelData[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [newChannel, setNewChannel] = useState<Partial<ChannelData>>({});
+  const [isAddingNew, setIsAddingNew] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await channelReportOperations.getByMonth(selectedMonth);
+      setChannelData(data || []);
+    } catch (error) {
+      console.error('Error loading channel data:', error);
+    }
+  }, [selectedMonth]);
 
   useEffect(() => {
     load();
-  }, [selectedMonth]);
-
-  async function load() {
-    const data = await channelReportOperations.getByMonth(selectedMonth);
-    setChannelData(data || []);
-  }
+  }, [load]);
 
   // Calculate derived metrics for a channel
-  const calculateChannelMetrics = (channel: ChannelReport) => {
+  const calculateChannelMetrics = (channel: ChannelData) => {
     const closeRate = channel.leads > 0 ? (channel.jobs / channel.leads) * 100 : 0;
     const costPerLead = channel.leads > 0 ? channel.cost / channel.leads : 0;
     const costPerJob = channel.jobs > 0 ? channel.cost / channel.jobs : 0;
@@ -93,7 +98,7 @@ const MarketingChannelsSection = () => {
     }
     const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     setSelectedMonth(newMonth);
-    setNewChannelData((prev) => ({ ...prev, month: newMonth }));
+    setNewChannel((prev) => ({ ...prev, month: newMonth }));
   };
 
   const formatMonthDisplay = (monthStr: string) => {
@@ -103,30 +108,30 @@ const MarketingChannelsSection = () => {
   };
 
   // Edit handlers
-  const handleEditStart = (channel: ChannelReport) => {
-    setEditingRow(channel.id);
-    setEditFormData({ ...channel });
+  const handleEditStart = (channel: ChannelData) => {
+    setEditingId(channel.id);
+    setNewChannel({ ...channel });
   };
 
   async function handleEditSave() {
-    if (editingRow == null || !editFormData) return;
-    await channelReportOperations.update(editingRow, editFormData);
-    setEditingRow(null);
-    setEditFormData({});
+    if (editingId == null || !newChannel) return;
+    await channelReportOperations.update(editingId, newChannel);
+    setEditingId(null);
+    setNewChannel({});
     load();
   }
 
   const handleEditCancel = () => {
-    setEditingRow(null);
-    setEditFormData({});
+    setEditingId(null);
+    setNewChannel({});
   };
 
   async function handleAddChannel() {
-    if (!newChannelData.channel) return;
-    await channelReportOperations.create(newChannelData);
-    setNewChannelData({
+    if (!newChannel.channel_name) return;
+    await channelReportOperations.create(newChannel as ChannelData);
+    setNewChannel({
       month: selectedMonth,
-      channel: '',
+      channel_name: '',
       cost: 0,
       leads: 0,
       jobs: 0,
@@ -135,7 +140,7 @@ const MarketingChannelsSection = () => {
       cost_per_lead: 0,
       roi: 0,
     });
-    setIsAddingChannel(false);
+    setIsAddingNew(false);
     load();
   }
 
@@ -145,7 +150,7 @@ const MarketingChannelsSection = () => {
   }
 
   const chartData = channelData.map(channel => ({
-    channel: channel.channel,
+    channel: channel.channel_name,
     revenue: channel.revenue,
     cost: channel.cost,
     leads: channel.leads,
@@ -246,7 +251,7 @@ const MarketingChannelsSection = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {currentMonthData.map((channel) => {
                 const metrics = calculateChannelMetrics(channel);
-                const isEditing = editingRow === channel.id;
+                const isEditing = editingId === channel.id;
                 
                 return (
                   <tr key={channel.id} className="hover:bg-gray-50 transition-colors">
@@ -254,12 +259,12 @@ const MarketingChannelsSection = () => {
                       {isEditing ? (
                         <input
                           type="text"
-                          value={editFormData.channel || ''}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, channel: e.target.value }))}
+                          value={newChannel.channel_name || ''}
+                          onChange={(e) => setNewChannel(prev => ({ ...prev, channel_name: e.target.value }))}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                         />
                       ) : (
-                        <span className="text-sm font-medium text-gray-900">{channel.channel}</span>
+                        <span className="text-sm font-medium text-gray-900">{channel.channel_name}</span>
                       )}
                     </td>
                     
@@ -267,8 +272,8 @@ const MarketingChannelsSection = () => {
                       {isEditing ? (
                         <input
                           type="number"
-                          value={editFormData.cost || 0}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, cost: Number(e.target.value) }))}
+                          value={newChannel.cost || 0}
+                          onChange={(e) => setNewChannel(prev => ({ ...prev, cost: Number(e.target.value) }))}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                         />
                       ) : (
@@ -280,8 +285,8 @@ const MarketingChannelsSection = () => {
                       {isEditing ? (
                         <input
                           type="number"
-                          value={editFormData.leads || 0}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, leads: Number(e.target.value) }))}
+                          value={newChannel.leads || 0}
+                          onChange={(e) => setNewChannel(prev => ({ ...prev, leads: Number(e.target.value) }))}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                         />
                       ) : (
@@ -293,8 +298,8 @@ const MarketingChannelsSection = () => {
                       {isEditing ? (
                         <input
                           type="number"
-                          value={editFormData.jobs || 0}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, jobs: Number(e.target.value) }))}
+                          value={newChannel.jobs || 0}
+                          onChange={(e) => setNewChannel(prev => ({ ...prev, jobs: Number(e.target.value) }))}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                         />
                       ) : (
@@ -306,8 +311,8 @@ const MarketingChannelsSection = () => {
                       {isEditing ? (
                         <input
                           type="number"
-                          value={editFormData.revenue || 0}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, revenue: Number(e.target.value) }))}
+                          value={newChannel.revenue || 0}
+                          onChange={(e) => setNewChannel(prev => ({ ...prev, revenue: Number(e.target.value) }))}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                         />
                       ) : (
@@ -369,13 +374,13 @@ const MarketingChannelsSection = () => {
               })}
               
               {/* Add New Channel Row */}
-              {isAddingChannel && (
+              {isAddingNew && (
                 <tr className="bg-blue-50 border-2 border-[#1877F2] border-dashed">
                   <td className="px-4 py-4">
                     <input
                       type="text"
-                      value={newChannelData.channel || ''}
-                      onChange={(e) => setNewChannelData(prev => ({ ...prev, channel: e.target.value }))}
+                      value={newChannel.channel_name || ''}
+                      onChange={(e) => setNewChannel(prev => ({ ...prev, channel_name: e.target.value }))}
                       placeholder="Channel name"
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                       autoFocus
@@ -384,8 +389,8 @@ const MarketingChannelsSection = () => {
                   <td className="px-4 py-4">
                     <input
                       type="number"
-                      value={newChannelData.cost || 0}
-                      onChange={(e) => setNewChannelData(prev => ({ ...prev, cost: Number(e.target.value) }))}
+                      value={newChannel.cost || 0}
+                      onChange={(e) => setNewChannel(prev => ({ ...prev, cost: Number(e.target.value) }))}
                       placeholder="0"
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                     />
@@ -393,8 +398,8 @@ const MarketingChannelsSection = () => {
                   <td className="px-4 py-4">
                     <input
                       type="number"
-                      value={newChannelData.leads || 0}
-                      onChange={(e) => setNewChannelData(prev => ({ ...prev, leads: Number(e.target.value) }))}
+                      value={newChannel.leads || 0}
+                      onChange={(e) => setNewChannel(prev => ({ ...prev, leads: Number(e.target.value) }))}
                       placeholder="0"
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                     />
@@ -402,8 +407,8 @@ const MarketingChannelsSection = () => {
                   <td className="px-4 py-4">
                     <input
                       type="number"
-                      value={newChannelData.jobs || 0}
-                      onChange={(e) => setNewChannelData(prev => ({ ...prev, jobs: Number(e.target.value) }))}
+                      value={newChannel.jobs || 0}
+                      onChange={(e) => setNewChannel(prev => ({ ...prev, jobs: Number(e.target.value) }))}
                       placeholder="0"
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                     />
@@ -411,8 +416,8 @@ const MarketingChannelsSection = () => {
                   <td className="px-4 py-4">
                     <input
                       type="number"
-                      value={newChannelData.revenue || 0}
-                      onChange={(e) => setNewChannelData(prev => ({ ...prev, revenue: Number(e.target.value) }))}
+                      value={newChannel.revenue || 0}
+                      onChange={(e) => setNewChannel(prev => ({ ...prev, revenue: Number(e.target.value) }))}
                       placeholder="0"
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-[#1877F2]"
                     />
@@ -430,10 +435,10 @@ const MarketingChannelsSection = () => {
                       </button>
                       <button
                         onClick={() => {
-                          setIsAddingChannel(false);
-                          setNewChannelData({
+                          setIsAddingNew(false);
+                          setNewChannel({
                             month: selectedMonth,
-                            channel: '',
+                            channel_name: '',
                             cost: 0,
                             leads: 0,
                             jobs: 0,
@@ -456,10 +461,10 @@ const MarketingChannelsSection = () => {
         </div>
 
         {/* Add Channel Button */}
-        {!isAddingChannel && (
+        {!isAddingNew && (
           <div className="mt-4 flex justify-center">
             <button
-              onClick={() => setIsAddingChannel(true)}
+              onClick={() => setIsAddingNew(true)}
               className="flex items-center px-4 py-2 text-sm text-[#1877F2] hover:text-[#166FE5] hover:bg-blue-50 border border-[#1877F2] rounded-md transition-colors"
             >
               <Plus size={16} className="mr-2" />

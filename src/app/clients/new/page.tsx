@@ -21,13 +21,13 @@ const CreateClientPage = () => {
   const [source, setSource] = useState('Direct');
   const [estimatedValue, setEstimatedValue] = useState(0);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
-      const newClient = await clientOperations.create({
+      await clientOperations.create({
         name: clientName,
         email,
         phone,
@@ -38,6 +38,9 @@ const CreateClientPage = () => {
         source,
         assigned_to: ''
       });
+      // Reset form
+      setClientName('');
+      setCompanyName('');
 
       router.push('/clients');
     } catch (err) {

@@ -5,19 +5,17 @@ import Link from 'next/link';
 import {
   PlusCircle,
   Search,
-  Eye,
   Edit3,
-  Lightbulb,
-  Filter,
-  Trash2
+  Trash2,
+  Phone,
+  Mail,
+  Lightbulb
 } from 'lucide-react';
-import SkeletonLoader from '@/components/ui/SkeletonLoader';
-import StatusBadge from '@/components/ui/StatusBadge';
-import FlowActions from '@/components/ui/FlowActions';
-import { leadStages, type LeadStatus } from '@/lib/flowStates';
+import { useRouter } from 'next/navigation';
 import { leadOperations } from '@/lib/supabase-client';
-import type { Lead } from '@/lib/supabase';
+import SkeletonLoader from '@/components/ui/SkeletonLoader';
 import { leadConversionOperations } from '@/lib/lead-conversion';
+import type { Lead } from '@/lib/supabase';
 
 const LeadsPage = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -38,14 +36,7 @@ const LeadsPage = () => {
     { key: 'lost', label: 'Lost', color: 'bg-red-100 text-red-800' },
   ];
 
-  // Status counts for the sorting bar - using flow states
-  const statusCounts = {
-    All: leads.length,
-    ...Object.keys(leadStages).reduce((acc, status) => {
-      acc[status] = leads.filter(lead => lead.status === status).length;
-      return acc;
-    }, {} as Record<string, number>)
-  };
+
 
   useEffect(() => {
     loadLeads();
@@ -65,22 +56,7 @@ const LeadsPage = () => {
     }
   };
 
-  const handleFlowAction = async (action: string, leadId: string) => {
-    setActionLoading(`${action}-${leadId}`);
-    // Simulate action processing
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setActionLoading(null);
-    
-    // Handle specific actions
-    switch (action) {
-      case 'convertToClient':
-        console.log(`Converting lead ${leadId} to client`);
-        // In real app, this would make API call and redirect
-        break;
-      default:
-        console.log(`${action} for lead ${leadId}`);
-    }
-  };
+
 
   const handleStatusChange = async (leadId: number, newStatus: string) => {
     setStatusUpdating(leadId);
@@ -134,20 +110,7 @@ const LeadsPage = () => {
       return matchesSearch && matchesStatus;
     });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new':
-        return 'bg-blue-100 text-blue-800';
-      case 'contacted':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'qualified':
-        return 'bg-green-100 text-green-800';
-      case 'lost':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   if (loading) return <div className="p-4">Loading leads...</div>;
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>;

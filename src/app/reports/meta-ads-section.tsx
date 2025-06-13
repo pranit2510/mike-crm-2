@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useCallback, useEffect } from 'react';
 import { Facebook, TrendingUp, DollarSign, Users, MousePointer, Target, RefreshCw } from 'lucide-react';
 

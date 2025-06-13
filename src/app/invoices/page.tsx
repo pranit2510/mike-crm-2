@@ -5,21 +5,20 @@ import Link from 'next/link';
 import {
   PlusCircle,
   Search,
-  FileText,
-  Download,
-  Send,
   Eye,
   Edit3,
   Trash2,
   DollarSign,
+  Receipt,
+  AlertTriangle,
+  CheckCircle,
   Clock
 } from 'lucide-react';
-import StatusBadge from '@/components/ui/StatusBadge';
-import FlowActions from '@/components/ui/FlowActions';
+import { useRouter } from 'next/navigation';
+import { invoiceOperations } from '@/lib/supabase-client';
 import SkeletonLoader from '@/components/ui/SkeletonLoader';
+import FlowActions from '@/components/ui/FlowActions';
 import { invoiceStages, type InvoiceStatus } from '@/lib/flowStates';
-import { invoiceOperations, clientOperations, jobOperations, quoteOperations } from '@/lib/supabase-client';
-
 // Enhanced invoice type with flow status
 interface EnhancedInvoice {
   id: string;
@@ -49,7 +48,7 @@ const InvoicesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [overdueFilter, setOverdueFilter] = useState('All');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   const [mounted, setMounted] = useState(false);
 
   // Status counts for the sorting bar - using flow states
@@ -72,10 +71,7 @@ const InvoicesPage = () => {
       const data = await invoiceOperations.getAll();
       setInvoices(data || []);
 
-      const quotes = await quoteOperations.getAll();
-      quotes.forEach(quote => {
-        console.log(quote.clients?.name); // Client's name for each quote
-      });
+      // Load invoices successfully
     } catch (err) {
       console.error('Error loading invoices:', err);
     } finally {
@@ -84,17 +80,7 @@ const InvoicesPage = () => {
   };
 
   const handleFlowAction = async (action: string, invoiceId: string) => {
-    setActionLoading(`${action}-${invoiceId}`);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setActionLoading(null);
-    
-    switch (action) {
-      case 'sendReminder':
-        console.log(`Sending payment reminder for invoice ${invoiceId}`);
-        break;
-      default:
-        console.log(`${action} for invoice ${invoiceId}`);
-    }
+    console.log(`Performing ${action} for invoice ${invoiceId}`);
   };
 
   const filteredInvoices = invoices.filter(invoice => {
@@ -128,7 +114,7 @@ const InvoicesPage = () => {
     <div className="fade-in">
       <div className='flex justify-between items-center mb-6'>
         <h1 className='text-3xl font-bold text-dark flex items-center'>
-          <FileText className='mr-3 h-8 w-8 text-primary' /> Invoices / Billing
+          <Receipt className='mr-3 h-8 w-8 text-primary' /> Invoices / Billing
         </h1>
         <Link href='/invoices/new' className='btn-primary group inline-flex items-center'>
           <PlusCircle size={20} className='mr-2 group-hover:rotate-90 transition-transform duration-300' />
@@ -335,14 +321,14 @@ const InvoicesPage = () => {
                             }
                           }}
                         >
-                          <Download size={18} />
+                          <Receipt size={18} />
                         </button>
                         {invoice.status === 'Draft' && (
                           <button 
                             className='text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-100/50 transition-all duration-200' 
                             title='Send Invoice'
                           >
-                            <Send size={18} />
+                            <CheckCircle size={18} />
                           </button>
                         )}
                         <button className='text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-100/50 transition-all duration-200' title='Delete Invoice'>

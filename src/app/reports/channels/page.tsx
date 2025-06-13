@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { channelReportOperations, type ChannelReport } from '@/lib/supabase-client';
 
 const defaultMonth = new Date().toISOString().slice(0, 7);
@@ -20,15 +20,23 @@ export default function ChannelReportsPage() {
     roi: 0,
   });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadReports = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await channelReportOperations.getByMonth(month);
+      setReports(data || []);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [month]);
 
   useEffect(() => {
     loadReports();
-  }, [month]);
-
-  async function loadReports() {
-    const data = await channelReportOperations.getByMonth(month);
-    setReports(data || []);
-  }
+  }, [loadReports]);
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;

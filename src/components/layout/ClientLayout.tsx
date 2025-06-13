@@ -18,7 +18,7 @@ interface ClientLayoutProps {
 const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-  const isPublicPage = publicPages.includes(pathname);
+  const isPublicPage = publicPages.includes(pathname ?? '');
   const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {

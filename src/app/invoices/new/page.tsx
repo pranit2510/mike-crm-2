@@ -17,7 +17,9 @@ import {
   Percent,
   FileText as FileTextIcon, // For pull from quote
   Briefcase, // For pull from job
-  CreditCard // For Record Payment
+  CreditCard, // For Record Payment
+  Plus,
+  Minus
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { invoiceOperations, clientOperations } from '@/lib/supabase-client';
@@ -31,13 +33,20 @@ interface LineItem {
   unitPrice: number;
 }
 
+interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+}
+
 const InvoiceFormContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const jobIdFromQuery = searchParams?.get('jobId');
   const quoteIdFromQuery = searchParams?.get('quoteId');
 
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState(() => {
