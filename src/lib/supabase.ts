@@ -12,12 +12,12 @@ export type Client = {
   name: string
   email: string
   phone: string
-  notes: string
-  address: string
-  status: 'active' | 'inactive'
-  estimated_value: number
-  source: string
-  assigned_to: string
+  notes?: string
+  address?: string
+  status: 'active' | 'inactive' | 'prospective'
+  estimated_value?: number
+  source?: string
+  assigned_to?: string
 }
 
 export type Job = {
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS clients (
   company TEXT,
   notes TEXT,
   address TEXT,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  status TEXT DEFAULT 'prospective' CHECK (status IN ('active', 'inactive', 'prospective')),
   lead_id BIGINT REFERENCES leads(id) ON DELETE SET NULL
 );
 

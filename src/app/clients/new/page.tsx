@@ -33,7 +33,7 @@ const CreateClientPage = () => {
         phone,
         address,
         notes,
-        status: 'active',
+        status: 'prospective',
         estimated_value: estimatedValue,
         source,
         assigned_to: ''
@@ -41,6 +41,12 @@ const CreateClientPage = () => {
       // Reset form
       setClientName('');
       setCompanyName('');
+      setEmail('');
+      setPhone('');
+      setAddress('');
+      setNotes('');
+      setSource('Direct');
+      setEstimatedValue(0);
 
       router.push('/clients');
     } catch (err) {

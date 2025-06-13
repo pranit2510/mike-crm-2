@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search } from 'lucide-react';
-import { clientOperations } from '@/lib/client-operations';
+import { clientOperations } from '@/lib/supabase-client';
 import type { Client } from '@/types/client';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FlowActions from '@/components/ui/FlowActions';
@@ -13,15 +13,20 @@ import { ClientStatus } from '@/lib/flowStates';
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
   const loadClients = useCallback(async () => {
     try {
+      setError(null);
+      console.log('Loading clients...');
       const data = await clientOperations.getAll();
-      setClients(data);
+      console.log('Clients loaded:', data);
+      setClients(data || []);
     } catch (error) {
       console.error('Error loading clients:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load clients');
     } finally {
       setLoading(false);
     }
@@ -36,8 +41,8 @@ export default function ClientsPage() {
     client.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleClientClick = (clientId: string) => {
-    router.push(`/clients/${clientId}`);
+  const handleClientClick = (clientId: number) => {
+    router.push(`/clients/${clientId.toString()}`);
   };
 
   return (
@@ -72,60 +77,88 @@ export default function ClientsPage() {
             <SkeletonLoader key={i} variant="list-item" />
           ))}
         </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={loadClients}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.map((client) => (
-                <tr
-                  key={client.id}
-                  onClick={() => handleClientClick(client.id)}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {client.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{client.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{client.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge module="clients" status={client.status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <FlowActions
-                      module="clients"
-                      status={client.status as ClientStatus} // Cast to proper type
-                      entityId={client.id}
-                    />
-                  </td>
+          {filteredClients.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              {clients.length === 0 ? (
+                <div>
+                  <p className="mb-4">No clients found. Start by adding your first client!</p>
+                  <button
+                    onClick={() => router.push('/clients/new')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  >
+                    Add First Client
+                  </button>
+                </div>
+              ) : (
+                <p>No clients match your search criteria.</p>
+              )}
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredClients.map((client) => (
+                  <tr
+                    key={client.id}
+                    onClick={() => handleClientClick(client.id)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {client.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{client.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{client.phone}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge module="clients" status={client.status} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <FlowActions
+                        module="clients"
+                        status={client.status as ClientStatus} // Cast to proper type
+                        entityId={client.id.toString()}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>
