@@ -1,3 +1,5 @@
+"use client";
+
 import LeadConversion from '@/components/LeadConversion'
 import QuoteConversion from '@/components/QuoteConversion'
 import Calendar from '@/components/Calendar'

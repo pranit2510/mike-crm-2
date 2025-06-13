@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react'
 import { leadOperations } from '@/lib/supabase-client'
 import type { Lead } from '@/lib/supabase'
@@ -13,7 +15,8 @@ export default function AddLeadForm({ onSuccess }: { onSuccess?: () => void }) {
     source: 'website',
     notes: '',
     status: 'new' as const,
-    assigned_to: ''
+    assigned_to: '',
+    estimated_value: 0
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +33,8 @@ export default function AddLeadForm({ onSuccess }: { onSuccess?: () => void }) {
         source: 'website',
         notes: '',
         status: 'new',
-        assigned_to: ''
+        assigned_to: '',
+        estimated_value: 0
       })
       onSuccess?.()
     } catch (err) {
@@ -87,6 +91,18 @@ export default function AddLeadForm({ onSuccess }: { onSuccess?: () => void }) {
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           value={formData.company}
           onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Estimated Value</label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          value={formData.estimated_value}
+          onChange={(e) => setFormData(prev => ({ ...prev, estimated_value: parseFloat(e.target.value) || 0 }))}
         />
       </div>
 

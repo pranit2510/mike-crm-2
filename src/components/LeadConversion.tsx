@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react'
 import { leadConversionOperations } from '@/lib/lead-conversion'
 import { leadOperations } from '@/lib/supabase-client'

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react'
 import { quoteConversionOperations } from '@/lib/quote-conversion'
 import { quoteOperations } from '@/lib/supabase-client'

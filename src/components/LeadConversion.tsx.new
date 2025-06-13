@@ -1,0 +1,124 @@
+"use client";
+
+import { useState, useEffect } from 'react'
+import { leadOperations } from '@/lib/supabase-client'
+import type { Lead } from '@/lib/supabase'
+
+export default function LeadConversion() {
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [conversionDate, setConversionDate] = useState('')
+
+  useEffect(() => {
+    loadLeads()
+  }, [])
+
+  const loadLeads = async () => {
+    try {
+      setLoading(true)
+      const data = await leadOperations.getAll()
+      setLeads(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load leads')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConvert = async () => {
+    if (!selectedLead || !conversionDate) return
+
+    try {
+      setLoading(true)
+      await leadOperations.convertToClient(
+        selectedLead.id,
+        new Date(conversionDate)
+      )
+      await loadLeads() // Reload leads after conversion
+      setSelectedLead(null)
+      setConversionDate('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to convert lead')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div className="text-red-500">Error: {error}</div>
+
+  return (
+    <div className="space-y-6">
+      {/* Convert Lead Form */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-4">Convert Lead to Client</h2>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Select Lead</label>
+            <select
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              value={selectedLead?.id || ''}
+              onChange={(e) => {
+                const lead = leads.find(l => l.id === Number(e.target.value))
+                setSelectedLead(lead || null)
+              }}
+            >
+              <option value="">Select a lead...</option>
+              {leads.map(lead => (
+                <option key={lead.id} value={lead.id}>
+                  {lead.name} - {lead.company}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Conversion Date</label>
+            <input
+              type="date"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              value={conversionDate}
+              onChange={(e) => setConversionDate(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={handleConvert}
+            disabled={!selectedLead || !conversionDate}
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            Convert Lead
+          </button>
+        </div>
+      </div>
+
+      {/* Leads List */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">Active Leads</h2>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {leads.map(lead => (
+            <div key={lead.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900">{lead.name}</h3>
+                  <p className="text-sm text-gray-500">{lead.company}</p>
+                  <p className="text-sm text-gray-500">{lead.email}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-900">
+                    Status: {lead.status}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Created: {new Date(lead.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+} 

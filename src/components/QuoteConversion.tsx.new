@@ -1,0 +1,126 @@
+"use client";
+
+import { useState, useEffect } from 'react'
+import { quoteOperations } from '@/lib/supabase-client'
+import type { Quote } from '@/lib/supabase'
+
+export default function QuoteConversion() {
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
+  const [acceptanceDate, setAcceptanceDate] = useState('')
+
+  useEffect(() => {
+    loadQuotes()
+  }, [])
+
+  const loadQuotes = async () => {
+    try {
+      setLoading(true)
+      const data = await quoteOperations.getAll()
+      setQuotes(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load quotes')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAccept = async () => {
+    if (!selectedQuote || !acceptanceDate) return
+
+    try {
+      setLoading(true)
+      await quoteOperations.acceptQuote(
+        selectedQuote.id,
+        new Date(acceptanceDate)
+      )
+      await loadQuotes() // Reload quotes after acceptance
+      setSelectedQuote(null)
+      setAcceptanceDate('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to accept quote')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div className="text-red-500">Error: {error}</div>
+
+  return (
+    <div className="space-y-6">
+      {/* Accept Quote Form */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-4">Accept Quote</h2>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Select Quote</label>
+            <select
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              value={selectedQuote?.id || ''}
+              onChange={(e) => {
+                const quote = quotes.find(q => q.id === Number(e.target.value))
+                setSelectedQuote(quote || null)
+              }}
+            >
+              <option value="">Select a quote...</option>
+              {quotes.map(quote => (
+                <option key={quote.id} value={quote.id}>
+                  {quote.title} - ${quote.amount.toFixed(2)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Acceptance Date</label>
+            <input
+              type="date"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              value={acceptanceDate}
+              onChange={(e) => setAcceptanceDate(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={handleAccept}
+            disabled={!selectedQuote || !acceptanceDate}
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            Accept Quote
+          </button>
+        </div>
+      </div>
+
+      {/* Quotes List */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">Pending Quotes</h2>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {quotes.map(quote => (
+            <div key={quote.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900">{quote.title}</h3>
+                  <p className="text-sm text-gray-500">Client: {quote.client}</p>
+                  <p className="text-sm text-gray-500">
+                    Amount: ${quote.amount.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-900">
+                    Status: {quote.status}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Created: {new Date(quote.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+} 
