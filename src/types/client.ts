@@ -1,3 +1,5 @@
+import { ClientStatus } from '@/lib/flowStates';
+
 export interface Client {
   id: string;
   name: string;
@@ -9,4 +11,7 @@ export interface Client {
   address?: string;
   company?: string;
   notes?: string;
+  estimated_value?: number;
+  source?: string;
+  assigned_to?: string;
 } 

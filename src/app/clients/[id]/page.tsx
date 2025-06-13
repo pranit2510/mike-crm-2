@@ -37,8 +37,12 @@ const mockClientsData = [
 
 const ClientDetailPage = () => {
   const params = useParams();
-  const clientId = params.id as string;
+  const clientId = params?.id as string;
   const [activeTab, setActiveTab] = useState('info');
+
+  if (!clientId) {
+    return <div>Loading...</div>;
+  }
 
   // Find the client - in a real app, this would be an API call
   const client = mockClientsData.find(c => c.id === clientId);

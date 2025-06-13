@@ -1,7 +1,8 @@
 import { supabase } from './supabase'
 import { leadOperations } from './supabase-client'
 import { clientOperations } from './supabase-client'
-import type { Lead, Client } from './supabase'
+import type { Lead } from './supabase'
+import type { Client } from '@/types/client'
 
 export const leadConversionOperations = {
   async convertLeadToClient(leadId: number): Promise<Client> {
@@ -16,7 +17,7 @@ export const leadConversionOperations = {
     if (!lead) throw new Error('Lead not found')
 
     // Create new client from lead data, include lead_id
-    const newClient: Omit<Client, 'id' | 'created_at'> & { lead_id: number } = {
+    const newClient: Omit<Client, 'id' | 'created_at' | 'updated_at'> & { lead_id: number } = {
       name: lead.name,
       email: lead.email,
       phone: lead.phone,
@@ -30,7 +31,8 @@ export const leadConversionOperations = {
     }
 
     // Create the client
-    const client = await clientOperations.create(newClient)
+    const { lead_id, ...clientData } = newClient;
+    const client = await clientOperations.create(clientData)
 
     // Update lead status to 'converted'
     const { error: updateError } = await supabase
